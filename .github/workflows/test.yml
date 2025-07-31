@@ -1,0 +1,74 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, "3.10", "3.11", "3.12"]
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov flake8
+    
+    - name: Lint with flake8
+      run: |
+        # Stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    
+    - name: Test imports and basic functionality
+      run: |
+        python -c "import main, irc_client, discord_client, slack_client, ollama_client"
+        python -c "from main import load_config; print('Config loading works')"
+    
+    - name: Check configuration validation
+      run: |
+        cp config.toml.example config.toml
+        python -c "from main import load_config, validate_config; config = load_config('config.toml'); validate_config(config); print('Config validation works')"
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+    
+    - name: Install bandit
+      run: pip install bandit
+    
+    - name: Run security scan
+      run: bandit -r . -f json -o bandit-report.json || true
+    
+    - name: Check for sensitive data
+      run: |
+        # Check that no real tokens are committed
+        if grep -r "xoxb-" --exclude-dir=.git --exclude="*.example" --exclude="*.md" .; then
+          echo "❌ Found Slack tokens in code!"
+          exit 1
+        fi
+        if grep -r "MTQw" --exclude-dir=.git --exclude="*.example" --exclude="*.md" .; then
+          echo "❌ Found Discord tokens in code!"
+          exit 1
+        fi
+        echo "✅ No sensitive tokens found in code"

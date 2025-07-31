@@ -1,0 +1,26 @@
+# AI Multi-Platform Bot Configuration Example
+# Copy this file to config.toml and fill in your actual tokens/settings
+
+platform = "irc"  # Options: "irc", "discord", "slack"
+bot_name = "your-bot-name"
+
+[ollama]
+base_url = "http://localhost:11434"
+model = "llama3:latest"
+
+[irc]
+server = "irc.libera.chat"
+port = 6667
+channels = ["#your-channel"]
+nickname = "your-bot-nickname"
+realname = "AI Bot powered by Ollama"
+
+[discord]
+token = "YOUR_DISCORD_BOT_TOKEN_HERE"
+# guild_id = 123456789  # Optional: restrict to specific guild (uncomment and set ID)
+channels = []    # Optional: restrict to specific channels
+
+[slack]
+token = "xoxb-your-slack-bot-token-here"
+app_token = "xapp-your-app-level-token-here"  # App-level token for Socket Mode
+channel = "general"

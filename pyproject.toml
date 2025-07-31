@@ -1,0 +1,102 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-multi-platform-bot"
+version = "1.0.0"
+description = "A Python bot that connects to IRC, Discord, and Slack to provide AI-powered responses using local Ollama models"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+    {name = "AI Multi-Platform Bot Contributors"}
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Communications :: Chat",
+    "Topic :: Communications :: Chat :: Internet Relay Chat",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+keywords = ["ai", "chatbot", "irc", "discord", "slack", "ollama", "bot"]
+requires-python = ">=3.8"
+dependencies = [
+    "requests>=2.31.0",
+    "irc>=20.3.0",
+    "discord.py>=2.3.0",
+    "slack-sdk>=3.22.0",
+    "slack-bolt>=1.18.0",
+    "toml>=0.10.2",
+]
+
+[project.urls]
+Homepage = "https://github.com/your-username/ai-irc-slack-discord-ollama-bot"
+Repository = "https://github.com/your-username/ai-irc-slack-discord-ollama-bot"
+Issues = "https://github.com/your-username/ai-irc-slack-discord-ollama-bot/issues"
+Documentation = "https://github.com/your-username/ai-irc-slack-discord-ollama-bot/tree/main/docs"
+
+[project.scripts]
+ai-multi-platform-bot = "main:main"
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["main", "irc_client", "discord_client", "slack_client", "ollama_client"]
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers --strict-config"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["."]
+omit = [
+    "venv/*",
+    "tests/*",
+    "setup.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+]
