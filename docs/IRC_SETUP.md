@@ -16,7 +16,7 @@ bot_name = "ticobotbot"
 
 [ollama]
 base_url = "http://localhost:11434"
-model = "llama3:latest"
+model = "granite3.2:latest"
 
 [irc]
 server = "irc.libera.chat"

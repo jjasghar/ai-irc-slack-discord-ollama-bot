@@ -20,7 +20,7 @@ A powerful Python bot that connects to **IRC**, **Discord**, and **Slack** to pr
 
 ### 🧠 AI Integration
 - **Local AI Models**: Powered by Ollama (privacy-first, runs offline)
-- **Multiple Models**: Support for LLaMA, Granite, and other Ollama models
+- **Multiple Models**: Support for Granite, LLaMA, and other Ollama models
 - **Intelligent Chunking**: Long responses split into readable chunks
 - **Continue Feature**: Get full responses with `continue` command
 - **Markdown Formatting**: Rich text formatting with bold, code blocks, and lists
@@ -50,7 +50,7 @@ A powerful Python bot that connects to **IRC**, **Discord**, and **Slack** to pr
    curl -fsSL https://ollama.ai/install.sh | sh
    
    # Pull an AI model
-   ollama pull llama3:latest
+   ollama pull granite3.2:latest
    
    # Start Ollama service
    ollama serve
@@ -109,7 +109,7 @@ bot_name = "ticobotbot"
 
 [ollama]
 base_url = "http://localhost:11434"
-model = "llama3:latest"
+model = "granite3.2:latest"
 
 # Platform-specific configurations
 [irc]
@@ -279,7 +279,7 @@ The bot provides comprehensive logging:
 Switch between different AI models:
 ```toml
 [ollama]
-model = "granite3.2:latest"  # Or llama3:latest, hermes3:latest, etc.
+model = "llama3:latest"  # Or granite3.2:latest, hermes3:latest, etc.
 ```
 
 ### Custom Behavior

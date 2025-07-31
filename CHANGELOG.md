@@ -43,7 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### AI Features
 - **Local Ollama integration** - Privacy-first AI processing
-- **Multiple model support** - LLaMA, Granite, and other Ollama models
+- **Multiple model support** - Granite, LLaMA, and other Ollama models
 - **Intelligent response chunking** - Word boundary breaking
 - **Continuation support** - Get full responses in multiple parts
 - **Context awareness** - Remembers conversations for continuations
