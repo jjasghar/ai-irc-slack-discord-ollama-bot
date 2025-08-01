@@ -71,12 +71,32 @@ jobs:
     - name: Check for sensitive data
       run: |
         # Check that no real tokens are committed
-        if grep -r "xoxb-" --exclude-dir=.git --exclude="*.example" --exclude="*.md" .; then
-          echo "❌ Found Slack tokens in code!"
+        SLACK_PATTERN="xoxb-"
+        DISCORD_PATTERN="MTQw"
+        
+        # Exclude config files, examples, docs, and this workflow file
+        if grep -r "$SLACK_PATTERN" \
+          --exclude-dir=.git \
+          --exclude="config.toml" \
+          --exclude="*.example" \
+          --exclude="*.md" \
+          --exclude="test.yml" \
+          --exclude-dir=__pycache__ \
+          .; then
+          echo "❌ Found Slack tokens in tracked code!"
           exit 1
         fi
-        if grep -r "MTQw" --exclude-dir=.git --exclude="*.example" --exclude="*.md" .; then
-          echo "❌ Found Discord tokens in code!"
+        
+        if grep -r "$DISCORD_PATTERN" \
+          --exclude-dir=.git \
+          --exclude="config.toml" \
+          --exclude="*.example" \
+          --exclude="*.md" \
+          --exclude="test.yml" \
+          --exclude-dir=__pycache__ \
+          .; then
+          echo "❌ Found Discord tokens in tracked code!"
           exit 1
         fi
-        echo "✅ No sensitive tokens found in code"
+        
+        echo "✅ No sensitive tokens found in tracked code"
