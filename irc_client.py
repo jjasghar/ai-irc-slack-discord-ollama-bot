@@ -5,6 +5,8 @@ import irc.bot
 import irc.strings
 import threading
 import logging
+import time
+import random
 from ollama_client import OllamaClient
 
 logger = logging.getLogger(__name__)
@@ -15,11 +17,11 @@ class IRCBot(irc.bot.SingleServerIRCBot):
         irc_config = config['irc']
         
         # Initialize IRC connection
-        server = irc_config['server']
-        port = irc_config['port']
-        nickname = irc_config['nickname']
+        self.server = irc_config['server']
+        self.port = irc_config['port']
+        self.nickname = irc_config['nickname']
         
-        super().__init__([(server, port)], nickname, nickname)
+        super().__init__([(self.server, self.port)], self.nickname, self.nickname)
         
         self.channel_list = irc_config['channels']
         self.bot_name = config['bot_name']
@@ -31,11 +33,23 @@ class IRCBot(irc.bot.SingleServerIRCBot):
         # Store full responses for continuation
         self.stored_responses = {}  # key: "user@channel", value: {"full_text": str, "position": int}
         
-        logger.info(f"IRC Bot initialized for {server}:{port} as {nickname}")
+        # Reconnection settings
+        self.reconnect_enabled = True
+        self.reconnect_attempts = 0
+        self.max_reconnect_attempts = 10
+        self.base_reconnect_delay = 5  # Base delay in seconds
+        self.max_reconnect_delay = 300  # Max delay in seconds (5 minutes)
+        self.is_connected = False
+        self.should_stop = False
+        
+        logger.info(f"IRC Bot initialized for {self.server}:{self.port} as {self.nickname}")
     
     def on_welcome(self, connection, event):
         """Called when bot successfully connects to IRC server"""
         logger.info("Connected to IRC server")
+        self.is_connected = True
+        self.reconnect_attempts = 0  # Reset reconnect attempts on successful connection
+        
         for channel in self.channel_list:
             connection.join(channel)
             logger.info(f"Joined channel: {channel}")
@@ -215,17 +229,98 @@ class IRCBot(irc.bot.SingleServerIRCBot):
         logger.error(f"IRC Error: {event}")
     
     def on_disconnect(self, connection, event):
-        """Handle disconnection"""
-        logger.info("Disconnected from IRC server")
+        """Handle disconnection and attempt reconnection"""
+        self.is_connected = False
+        logger.warning("Disconnected from IRC server")
+        
+        if self.should_stop:
+            logger.info("Bot is shutting down, not attempting reconnection")
+            return
+            
+        if self.reconnect_enabled and self.reconnect_attempts < self.max_reconnect_attempts:
+            self.attempt_reconnect()
+        else:
+            logger.error(f"Max reconnection attempts ({self.max_reconnect_attempts}) reached. Giving up.")
+    
+    def attempt_reconnect(self):
+        """Attempt to reconnect with exponential backoff"""
+        self.reconnect_attempts += 1
+        
+        # Calculate delay with exponential backoff and jitter
+        delay = min(
+            self.base_reconnect_delay * (2 ** (self.reconnect_attempts - 1)),
+            self.max_reconnect_delay
+        )
+        # Add jitter to avoid thundering herd
+        delay += random.uniform(0, min(delay * 0.1, 10))
+        
+        logger.info(f"Attempting reconnection #{self.reconnect_attempts} in {delay:.1f} seconds...")
+        time.sleep(delay)
+        
+        try:
+            # Recreate the connection
+            self.connection.reconnect()
+            logger.info("Reconnection attempt initiated")
+        except Exception as e:
+            logger.error(f"Reconnection attempt #{self.reconnect_attempts} failed: {e}")
+            if self.reconnect_attempts < self.max_reconnect_attempts:
+                # Schedule another attempt
+                threading.Timer(1.0, self.attempt_reconnect).start()
+            else:
+                logger.error("All reconnection attempts exhausted")
+    
+    def on_nicknameinuse(self, connection, event):
+        """Handle nickname already in use"""
+        alternative_nick = f"{self.nickname}_{random.randint(100, 999)}"
+        logger.warning(f"Nickname {self.nickname} in use, trying {alternative_nick}")
+        connection.nick(alternative_nick)
+    
+    def on_kick(self, connection, event):
+        """Handle being kicked from a channel"""
+        channel = event.target
+        kicker = event.source.nick
+        reason = event.arguments[0] if event.arguments else "No reason given"
+        
+        logger.warning(f"Kicked from {channel} by {kicker}: {reason}")
+        
+        # Wait a bit then try to rejoin
+        def rejoin_after_kick():
+            time.sleep(30)  # Wait 30 seconds before attempting to rejoin
+            if self.is_connected:
+                try:
+                    connection.join(channel)
+                    logger.info(f"Attempted to rejoin {channel} after being kicked")
+                except Exception as e:
+                    logger.error(f"Failed to rejoin {channel}: {e}")
+        
+        threading.Thread(target=rejoin_after_kick, daemon=True).start()
+    
+    def stop_bot(self):
+        """Gracefully stop the bot"""
+        self.should_stop = True
+        self.reconnect_enabled = False
+        if hasattr(self, 'connection') and self.connection.is_connected():
+            self.connection.quit("Bot shutting down")
+        logger.info("Bot stop requested")
     
     def start_bot(self):
-        """Start the IRC bot"""
-        try:
-            logger.info("Starting IRC bot...")
-            self.start()
-        except Exception as e:
-            logger.error(f"Error starting IRC bot: {e}")
-            raise
+        """Start the IRC bot with reconnection handling"""
+        while not self.should_stop:
+            try:
+                logger.info("Starting IRC bot...")
+                self.start()
+            except KeyboardInterrupt:
+                logger.info("Bot interrupted by user")
+                self.stop_bot()
+                break
+            except Exception as e:
+                logger.error(f"Error starting IRC bot: {e}")
+                if not self.should_stop and self.reconnect_enabled:
+                    logger.info("Attempting to restart bot after error...")
+                    time.sleep(self.base_reconnect_delay)
+                    continue
+                else:
+                    break
 
 def run_irc_bot(config):
     """Function to run the IRC bot in a separate thread"""
